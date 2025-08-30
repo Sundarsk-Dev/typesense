@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Typing Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body class="bg-gray-900 text-gray-100 min-h-screen p-6">
+    <div class="max-w-4xl mx-auto">
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-yellow-400">Typing Insights</h1>
+        <a
+          href="/"
+          class="px-4 py-2 bg-gray-700 text-gray-100 rounded hover:bg-gray-600 transition"
+        >
+          ⬅ Back to Typing
+        </a>
+      </div>
+
+      <!-- Mood Highlight -->
+      {% if sessions %}
+      <div class="bg-gray-800 p-6 rounded-lg shadow mb-6">
+        <h2 class="text-xl font-semibold">Latest Mood Report</h2>
+        <p class="mt-2 text-2xl font-bold text-yellow-300">
+          {{ sessions[0][5] }}
+        </p>
+        <p class="text-gray-400 mt-1 text-sm">
+          Based on your recent typing session
+        </p>
+      </div>
+      {% endif %}
+
+      <!-- Chart -->
+      <div class="bg-gray-800 p-6 rounded-lg shadow mb-6">
+        <h2 class="text-xl font-semibold mb-2">Typing Speed Over Sessions</h2>
+        <canvas id="speedChart"></canvas>
+      </div>
+
+      <!-- History -->
+      <div class="bg-gray-800 p-6 rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">Session History</h2>
+        <table class="table-auto w-full text-left border-collapse">
+          <thead class="bg-gray-700">
+            <tr>
+              <th class="p-2">ID</th>
+              <th class="p-2">Timestamp</th>
+              <th class="p-2">Avg Speed</th>
+              <th class="p-2">Pauses</th>
+              <th class="p-2">Backspaces</th>
+              <th class="p-2">Mood</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in sessions %}
+            <tr class="border-t border-gray-700">
+              <td class="p-2">{{row[0]}}</td>
+              <td class="p-2">{{row[1]}}</td>
+              <td class="p-2">{{row[2]}}</td>
+              <td class="p-2">{{row[3]}}</td>
+              <td class="p-2">{{row[4]}}</td>
+              <td class="p-2 text-yellow-300">{{row[5]}}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Export Button -->
+      <div class="mt-6 text-center">
+        <a
+          href="/export"
+          class="px-6 py-2 bg-yellow-400 text-gray-900 font-semibold rounded-lg hover:bg-yellow-300 transition"
+        >
+          Export CSV
+        </a>
+      </div>
+    </div>
+
+    <script>
+      const ctx = document.getElementById('speedChart');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [{% for row in sessions %}"{{row[1]}}",{% endfor %}],
+          datasets: [{
+            label: 'Avg Typing Speed (ms between keys)',
+            data: [{% for row in sessions %}{{row[2]}},{% endfor %}],
+            borderColor: 'rgba(255, 206, 86, 1)',
+            backgroundColor: 'rgba(255, 206, 86, 0.2)',
+            borderWidth: 2,
+            tension: 0.3
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { labels: { color: 'white' } }
+          },
+          scales: {
+            x: { ticks: { color: 'white' } },
+            y: { ticks: { color: 'white' } }
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
