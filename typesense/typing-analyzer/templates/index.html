@@ -3,146 +3,309 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Typesense - Analyze your typing patterns, speed, and mood through real-time keystroke analysis"
-    />
-    <title>Typesense — Advanced Typing Pattern Analyzer</title>
+    <title>Typesense - Typing Pattern Analyzer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      /* Custom animations */
-      @keyframes pulse-glow {
-        0%,
-        100% {
-          box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
-        }
-        50% {
-          box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
-        }
+      body {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
       }
-      .typing-active {
-        animation: pulse-glow 2s infinite;
+      .typing-area {
+        background: #1e293b;
+        border: 2px solid #475569;
+        transition: all 0.3s ease;
+      }
+      .typing-area:focus {
+        border-color: #f59e0b;
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+      }
+      .btn-primary {
+        background: #475569;
+        transition: all 0.3s ease;
+      }
+      .btn-primary:hover {
+        background: #64748b;
+      }
+      .btn-active {
+        background: #f59e0b !important;
       }
     </style>
   </head>
-  <body
-    class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 flex items-center justify-center min-h-screen p-4"
-  >
-    <div
-      class="w-full max-w-2xl p-8 text-center bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl"
-    >
+  <body class="min-h-screen text-white">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
       <!-- Header -->
-      <header>
-        <h1
-          class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400"
-        >
-          Typesense
-        </h1>
-        <p class="text-gray-300 mt-3 text-lg">
+      <div class="text-center mb-8">
+        <h1 class="text-5xl font-bold text-amber-400 mb-4">Typesense</h1>
+        <p class="text-gray-300 text-lg">
           Analyze your subconscious typing patterns. Choose a test duration and
-          type naturally — we'll calculate speed, pauses, corrections, and mood.
+          type<br />
+          naturally — we'll calculate speed, pauses, corrections, and mood.
         </p>
-      </header>
+      </div>
 
-      <!-- Duration Selector -->
-      <nav
-        class="mt-8 flex justify-center gap-4"
-        role="navigation"
-        aria-label="Test duration options"
-      >
+      <!-- Duration Buttons -->
+      <div class="flex justify-center gap-4 mb-8">
         <button
-          data-duration="5"
-          class="duration-btn px-6 py-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Start 5 second typing test"
+          onclick="startTest(5)"
+          class="duration-btn btn-primary px-6 py-3 rounded-lg font-semibold"
         >
           5s Test
         </button>
         <button
-          data-duration="10"
-          class="duration-btn px-6 py-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Start 10 second typing test"
+          onclick="startTest(10)"
+          class="duration-btn btn-primary px-6 py-3 rounded-lg font-semibold"
         >
           10s Test
         </button>
         <button
-          data-duration="30"
-          class="duration-btn px-6 py-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Start 30 second typing test"
+          onclick="startTest(30)"
+          class="duration-btn btn-primary px-6 py-3 rounded-lg font-semibold"
         >
           30s Test
         </button>
-      </nav>
+      </div>
 
-      <!-- Typing Box -->
-      <main class="mt-8">
-        <div class="relative">
-          <textarea
-            id="typingBox"
-            disabled
-            class="w-full h-48 p-5 rounded-xl bg-gray-900/80 text-gray-100 border-2 border-gray-700 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/50 outline-none resize-none transition-all duration-300 text-lg font-mono disabled:opacity-60"
-            placeholder="Choose a duration to begin typing..."
-            aria-label="Typing input area"
-          ></textarea>
-          <div
-            id="characterCount"
-            class="absolute bottom-4 right-4 text-gray-500 text-sm hidden"
-          >
-            <span id="charCount">0</span> characters
+      <!-- Typing Area -->
+      <div class="relative">
+        <textarea
+          id="typingArea"
+          class="typing-area w-full h-48 p-6 rounded-lg text-lg outline-none resize-none"
+          placeholder="Choose a duration to begin typing..."
+          disabled
+        ></textarea>
+        <div class="absolute bottom-4 right-4 text-gray-400">
+          <span id="charCount">0</span> characters
+        </div>
+      </div>
+
+      <!-- Live Stats -->
+      <div id="liveStats" class="hidden mt-6 text-center">
+        <div class="grid grid-cols-3 gap-4">
+          <div class="bg-slate-700 p-4 rounded-lg">
+            <div class="text-3xl font-bold text-amber-400" id="liveWPM">0</div>
+            <div class="text-sm text-gray-400">WPM</div>
+          </div>
+          <div class="bg-slate-700 p-4 rounded-lg">
+            <div class="text-3xl font-bold text-amber-400" id="timer">0s</div>
+            <div class="text-sm text-gray-400">Time</div>
+          </div>
+          <div class="bg-slate-700 p-4 rounded-lg">
+            <div class="text-3xl font-bold text-amber-400" id="liveCorrections">
+              0
+            </div>
+            <div class="text-sm text-gray-400">Corrections</div>
           </div>
         </div>
+      </div>
 
-        <!-- Status Indicators -->
-        <div class="mt-6 flex justify-center items-center gap-8">
-          <div
-            id="timer"
-            class="text-2xl font-bold text-yellow-300"
-            role="timer"
-            aria-live="polite"
-          ></div>
-          <div id="liveStats" class="hidden text-sm text-gray-400 space-x-4">
-            <span
-              >WPM:
-              <span id="liveWPM" class="text-yellow-400 font-bold"
-                >0</span
-              ></span
+      <!-- Results -->
+      <div id="results" class="hidden mt-8 p-6 bg-slate-700 rounded-lg">
+        <h2 class="text-2xl font-bold text-red-400 mb-4">Time's up!</h2>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <span class="text-gray-400">WPM:</span>
+            <span class="text-2xl font-bold text-amber-400 ml-2" id="finalWPM"
+              >0</span
             >
+          </div>
+          <div>
+            <span class="text-gray-400">Corrections:</span>
             <span
-              >Corrections:
-              <span id="liveBackspaces" class="text-orange-400 font-bold"
-                >0</span
-              ></span
+              class="text-2xl font-bold text-amber-400 ml-2"
+              id="finalCorrections"
+              >0</span
             >
           </div>
         </div>
-
-        <!-- Result -->
-        <div
-          id="result"
-          class="mt-6 p-4 rounded-lg bg-gray-700/50 hidden transition-all duration-500"
-          role="alert"
-        >
-          <p class="text-xl font-semibold text-green-400"></p>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="mt-8 flex justify-center gap-4">
-          <a
-            href="/stats"
-            class="px-6 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-all duration-200 text-gray-300 hover:text-white"
+        <div class="mb-4">
+          <span class="text-gray-400">Mood:</span>
+          <span class="text-2xl font-bold text-green-400 ml-2" id="mood"
+            >Analyzing...</span
           >
-            View History
-          </a>
+        </div>
+        <div class="mb-4">
+          <p class="text-gray-300" id="suggestion"></p>
+        </div>
+        <div class="flex gap-4">
           <button
-            id="resetBtn"
-            class="hidden px-6 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-500 transition-all duration-200 text-gray-900 font-semibold"
-            aria-label="Reset typing test"
+            onclick="resetTest()"
+            class="btn-primary px-6 py-3 rounded-lg font-semibold"
           >
             Try Again
           </button>
+          <a
+            href="/stats"
+            class="btn-primary px-6 py-3 rounded-lg font-semibold inline-block text-center"
+          >
+            View History
+          </a>
         </div>
-      </main>
+      </div>
+
+      <!-- Error Message -->
+      <div
+        id="error"
+        class="hidden mt-4 p-4 bg-red-900/50 border border-red-500 rounded-lg text-red-300"
+      >
+        Failed to analyze typing pattern. Please try again.
+      </div>
     </div>
 
-    <script src="/static/script.js" defer></script>
+    <script>
+      let testDuration = 0;
+      let startTime = null;
+      let keystrokes = [];
+      let corrections = 0;
+      let timerInterval = null;
+      let isTestActive = false;
+
+      const typingArea = document.getElementById("typingArea");
+      const charCount = document.getElementById("charCount");
+      const liveStats = document.getElementById("liveStats");
+      const results = document.getElementById("results");
+      const error = document.getElementById("error");
+
+      function startTest(duration) {
+        testDuration = duration;
+        resetTest();
+
+        // Update UI
+        document.querySelectorAll(".duration-btn").forEach((btn) => {
+          btn.classList.remove("btn-active");
+        });
+        event.target.classList.add("btn-active");
+
+        typingArea.disabled = false;
+        typingArea.focus();
+        typingArea.placeholder = "Start typing...";
+
+        isTestActive = true;
+        liveStats.classList.remove("hidden");
+      }
+
+      function resetTest() {
+        // Clear everything
+        typingArea.value = "";
+        typingArea.disabled = true;
+        typingArea.placeholder = "Choose a duration to begin typing...";
+        charCount.textContent = "0";
+
+        startTime = null;
+        keystrokes = [];
+        corrections = 0;
+        isTestActive = false;
+
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+
+        // Reset UI
+        liveStats.classList.add("hidden");
+        results.classList.add("hidden");
+        error.classList.add("hidden");
+
+        document.getElementById("liveWPM").textContent = "0";
+        document.getElementById("timer").textContent = "0s";
+        document.getElementById("liveCorrections").textContent = "0";
+
+        document.querySelectorAll(".duration-btn").forEach((btn) => {
+          btn.classList.remove("btn-active");
+        });
+      }
+
+      typingArea.addEventListener("input", function (e) {
+        if (!isTestActive) return;
+
+        // Start timer on first keystroke
+        if (!startTime && e.inputType !== "deleteContentBackward") {
+          startTime = Date.now();
+          startTimer();
+        }
+
+        // Update character count
+        charCount.textContent = e.target.value.length;
+
+        // Calculate live WPM
+        if (startTime) {
+          const elapsed = (Date.now() - startTime) / 1000;
+          const words = e.target.value
+            .split(/\s+/)
+            .filter((w) => w.length > 0).length;
+          const wpm = Math.round((words / elapsed) * 60);
+          document.getElementById("liveWPM").textContent = wpm || 0;
+        }
+      });
+
+      typingArea.addEventListener("keydown", function (e) {
+        if (!isTestActive || !startTime) return;
+
+        const keystroke = {
+          key: e.key,
+          timestamp: Date.now(),
+          type: e.key === "Backspace" ? "correction" : "normal",
+        };
+
+        keystrokes.push(keystroke);
+
+        if (e.key === "Backspace" || e.key === "Delete") {
+          corrections++;
+          document.getElementById("liveCorrections").textContent = corrections;
+        }
+      });
+
+      function startTimer() {
+        let elapsed = 0;
+
+        timerInterval = setInterval(() => {
+          elapsed = Math.floor((Date.now() - startTime) / 1000);
+          document.getElementById("timer").textContent = elapsed + "s";
+
+          if (elapsed >= testDuration) {
+            endTest();
+          }
+        }, 100);
+      }
+
+      function endTest() {
+        isTestActive = false;
+        typingArea.disabled = true;
+        clearInterval(timerInterval);
+
+        const duration = (Date.now() - startTime) / 1000;
+        const text = typingArea.value;
+
+        // Send data for analysis
+        fetch("/analyze", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            duration: duration,
+            keystrokes: keystrokes,
+            corrections: corrections,
+            text: text,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            // Show results
+            document.getElementById("finalWPM").textContent = data.wpm;
+            document.getElementById("finalCorrections").textContent =
+              data.corrections;
+            document.getElementById("mood").textContent = data.mood;
+            document.getElementById("suggestion").textContent = data.suggestion;
+
+            results.classList.remove("hidden");
+            liveStats.classList.add("hidden");
+          })
+          .catch((err) => {
+            console.error("Error:", err);
+            error.classList.remove("hidden");
+            results.classList.add("hidden");
+            liveStats.classList.add("hidden");
+          });
+      }
+    </script>
   </body>
 </html>
