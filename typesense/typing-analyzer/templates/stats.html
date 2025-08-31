@@ -2,82 +2,210 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Typesense - Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Typesense - History & Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      }
+    </style>
   </head>
-  <body
-    class="bg-gray-900 text-white flex flex-col items-center min-h-screen p-6"
-  >
-    <!-- Header -->
-    <h1 class="text-3xl font-bold text-yellow-400 mb-6">📊 Typing Dashboard</h1>
+  <body class="min-h-screen text-white">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-8">
+        <h1 class="text-4xl font-bold text-amber-400">Typing History</h1>
+        <div class="flex gap-4">
+          <button
+            onclick="exportCSV()"
+            class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-semibold"
+          >
+            Export CSV
+          </button>
+          <a
+            href="/"
+            class="bg-slate-600 hover:bg-slate-700 px-4 py-2 rounded-lg font-semibold"
+          >
+            Back to Test
+          </a>
+        </div>
+      </div>
 
-    <!-- Latest Mood Report -->
-    {% if rows %}
-    <div class="bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-2xl mb-6">
-      <h2 class="text-xl font-semibold">Latest Mood Report</h2>
-      <p class="text-yellow-400 text-2xl mt-2">{{ rows[0][5] }}</p>
-      <p class="text-gray-400 text-sm">
-        Based on your most recent typing session
-      </p>
-    </div>
-    {% else %}
-    <p class="text-gray-400">No typing sessions yet. Try the test first.</p>
-    {% endif %}
+      <!-- Stats Overview -->
+      <div class="grid grid-cols-4 gap-4 mb-8">
+        <div class="bg-slate-700 p-4 rounded-lg">
+          <div class="text-2xl font-bold text-amber-400" id="avgWPM">--</div>
+          <div class="text-sm text-gray-400">Average WPM</div>
+        </div>
+        <div class="bg-slate-700 p-4 rounded-lg">
+          <div class="text-2xl font-bold text-amber-400" id="totalSessions">
+            --
+          </div>
+          <div class="text-sm text-gray-400">Total Sessions</div>
+        </div>
+        <div class="bg-slate-700 p-4 rounded-lg">
+          <div class="text-2xl font-bold text-amber-400" id="bestWPM">--</div>
+          <div class="text-sm text-gray-400">Best WPM</div>
+        </div>
+        <div class="bg-slate-700 p-4 rounded-lg">
+          <div class="text-2xl font-bold text-amber-400" id="avgCorrections">
+            --
+          </div>
+          <div class="text-sm text-gray-400">Avg Corrections</div>
+        </div>
+      </div>
 
-    <!-- Chart -->
-    <div class="bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-4xl mb-6">
-      <h2 class="text-xl font-semibold mb-4">Typing Speed Over Sessions</h2>
-      <canvas id="typingChart"></canvas>
-    </div>
+      <!-- Chart -->
+      <div class="bg-slate-700 p-6 rounded-lg mb-8">
+        <h2 class="text-xl font-bold mb-4">WPM Progress</h2>
+        <canvas id="wpmChart" width="400" height="150"></canvas>
+      </div>
 
-    <!-- Buttons -->
-    <div class="flex space-x-4">
-      <a
-        href="/"
-        class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 rounded-lg text-black font-semibold"
-      >
-        ⬅ Back to Typing
-      </a>
-      <a
-        href="/clear"
-        class="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white font-semibold"
-      >
-        🔄 Reset Data
-      </a>
+      <!-- History Table -->
+      <div class="bg-slate-700 rounded-lg overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-slate-800">
+            <tr>
+              <th class="px-4 py-3 text-left">Date</th>
+              <th class="px-4 py-3 text-left">Duration</th>
+              <th class="px-4 py-3 text-left">WPM</th>
+              <th class="px-4 py-3 text-left">Corrections</th>
+              <th class="px-4 py-3 text-left">Mood</th>
+            </tr>
+          </thead>
+          <tbody id="historyTable" class="divide-y divide-slate-600">
+            <!-- Rows will be added here -->
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <script>
-      const labels = {{ rows|map(attribute=1)|list|tojson }};
-      const speeds = {{ rows|map(attribute=2)|list|tojson }};
+      let historyData = [];
+      let wpmChart = null;
 
-      const ctx = document.getElementById("typingChart").getContext("2d");
-      new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: labels.reverse(),
-          datasets: [{
-            label: "Typing Speed (WPM)",
-            data: speeds.reverse(),
-            borderColor: "#facc15",
-            backgroundColor: "#facc15",
-            tension: 0.3,
-            fill: false,
-            pointRadius: 4,
-            pointHoverRadius: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { labels: { color: "white" } }
-          },
-          scales: {
-            x: { ticks: { color: "white" } },
-            y: { ticks: { color: "white" } }
-          }
+      // Load history on page load
+      window.addEventListener("DOMContentLoaded", loadHistory);
+
+      function loadHistory() {
+        fetch("/history")
+          .then((response) => response.json())
+          .then((data) => {
+            historyData = data;
+            displayHistory(data);
+            updateStats(data);
+            updateChart(data);
+          })
+          .catch((err) => console.error("Error loading history:", err));
+      }
+
+      function displayHistory(sessions) {
+        const tbody = document.getElementById("historyTable");
+        tbody.innerHTML = "";
+
+        if (sessions.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="5" class="text-center py-4 text-gray-400">No typing sessions yet</td></tr>';
+          return;
         }
-      });
+
+        sessions.forEach((session) => {
+          const date = new Date(session.timestamp);
+          const row = document.createElement("tr");
+          row.className = "hover:bg-slate-600 transition-colors";
+          row.innerHTML = `
+                    <td class="px-4 py-3">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</td>
+                    <td class="px-4 py-3">${session.duration}s</td>
+                    <td class="px-4 py-3 font-bold text-amber-400">${
+                      session.wpm
+                    }</td>
+                    <td class="px-4 py-3">${session.corrections}</td>
+                    <td class="px-4 py-3">${session.mood}</td>
+                `;
+          tbody.appendChild(row);
+        });
+      }
+
+      function updateStats(sessions) {
+        if (sessions.length === 0) return;
+
+        const wpms = sessions.map((s) => s.wpm);
+        const corrections = sessions.map((s) => s.corrections);
+
+        document.getElementById("avgWPM").textContent = Math.round(
+          wpms.reduce((a, b) => a + b, 0) / wpms.length
+        );
+        document.getElementById("totalSessions").textContent = sessions.length;
+        document.getElementById("bestWPM").textContent = Math.max(...wpms);
+        document.getElementById("avgCorrections").textContent = Math.round(
+          corrections.reduce((a, b) => a + b, 0) / corrections.length
+        );
+      }
+
+      function updateChart(sessions) {
+        const ctx = document.getElementById("wpmChart").getContext("2d");
+
+        // Destroy existing chart if it exists
+        if (wpmChart) {
+          wpmChart.destroy();
+        }
+
+        // Prepare data (last 10 sessions)
+        const recentSessions = sessions.slice(0, 10).reverse();
+        const labels = recentSessions.map((s, i) => `Session ${i + 1}`);
+        const wpmData = recentSessions.map((s) => s.wpm);
+
+        wpmChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "WPM",
+                data: wpmData,
+                borderColor: "rgb(245, 158, 11)",
+                backgroundColor: "rgba(245, 158, 11, 0.1)",
+                tension: 0.4,
+                fill: true,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false,
+              },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: "rgba(255, 255, 255, 0.1)",
+                },
+                ticks: {
+                  color: "rgba(255, 255, 255, 0.7)",
+                },
+              },
+              x: {
+                grid: {
+                  color: "rgba(255, 255, 255, 0.1)",
+                },
+                ticks: {
+                  color: "rgba(255, 255, 255, 0.7)",
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function exportCSV() {
+        window.location.href = "/export-csv";
+      }
     </script>
   </body>
 </html>
