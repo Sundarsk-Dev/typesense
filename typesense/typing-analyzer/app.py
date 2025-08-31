@@ -9,14 +9,12 @@ import os
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 
+# The database initialization function.
+# NOTE: Using "CREATE TABLE IF NOT EXISTS" to prevent data loss on deployments.
 def init_db():
     conn = sqlite3.connect('typing.db')
     c = conn.cursor()
-    
-    c.execute('DROP TABLE IF EXISTS sessions')
-    
-
-    c.execute('''CREATE TABLE sessions
+    c.execute('''CREATE TABLE IF NOT EXISTS sessions
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   timestamp TEXT,
                   duration INTEGER,
@@ -32,6 +30,10 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Call the function to set up the database.
+# This is now outside the "if __name__ == '__main__':" block so it runs on deployment.
+init_db()
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -44,7 +46,6 @@ def stats():
 def analyze():
     data = request.json
     
-
     duration = data.get('duration', 0)
     keystrokes = data.get('keystrokes', [])
     corrections = data.get('corrections', 0)
@@ -141,14 +142,14 @@ def get_suggestion(wpm, corrections, mood):
         return "Keep practicing! Consistency is key."
 
 def save_session(duration, wpm, corrections, total_keystrokes, pause_count, 
-                avg_pause_duration, burst_count, mood, raw_text, metadata):
+                 avg_pause_duration, burst_count, mood, raw_text, metadata):
     """Save typing session to database"""
     conn = sqlite3.connect('typing.db')
     c = conn.cursor()
     c.execute('''INSERT INTO sessions 
-                 (timestamp, duration, wpm, corrections, total_keystrokes, 
-                  pause_count, avg_pause_duration, burst_count, mood, raw_text, metadata)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                  (timestamp, duration, wpm, corrections, total_keystrokes, 
+                   pause_count, avg_pause_duration, burst_count, mood, raw_text, metadata)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
               (datetime.now().isoformat(), duration, wpm, corrections, 
                total_keystrokes, pause_count, avg_pause_duration, 
                burst_count, mood, raw_text, metadata))
@@ -161,7 +162,7 @@ def get_history():
     conn = sqlite3.connect('typing.db')
     c = conn.cursor()
     c.execute('''SELECT id, timestamp, duration, wpm, corrections, mood 
-                 FROM sessions ORDER BY timestamp DESC LIMIT 20''')
+                  FROM sessions ORDER BY timestamp DESC LIMIT 20''')
     sessions = []
     for row in c.fetchall():
         sessions.append({
@@ -187,8 +188,8 @@ def export_csv():
     
     # Write headers
     writer.writerow(['ID', 'Timestamp', 'Duration (s)', 'WPM', 'Corrections', 
-                    'Total Keystrokes', 'Pause Count', 'Avg Pause Duration', 
-                    'Burst Count', 'Mood', 'Text'])
+                     'Total Keystrokes', 'Pause Count', 'Avg Pause Duration', 
+                     'Burst Count', 'Mood', 'Text'])
     
     for row in c.fetchall():
         writer.writerow(row[:-1])  # Exclude metadata column
@@ -204,5 +205,5 @@ def export_csv():
     )
 
 if __name__ == '__main__':
-    init_db()
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
