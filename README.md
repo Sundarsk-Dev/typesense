@@ -50,7 +50,7 @@ pip package manager
 Installation
 
 Clone the repository
-bashgit clone https://github.com/yourusername/typesense.git
+bashgit clone https://github.com/Sundarsk-Dev/typesense
 cd typesense
 
 Install dependencies
